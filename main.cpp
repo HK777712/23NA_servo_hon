@@ -1,4 +1,5 @@
 #include "mbed.h"
+#include <cstdint>
 
 
 PwmOut servo_R(PA_7);//migi oku
@@ -8,7 +9,6 @@ PwmOut servo_L(PB_1); //hidari_serovo temae
 RawCAN      can_robo( PB_12,  PB_13, 1000000); //robomas
 RawCAN      can_main( PA_11,PA_12, 1000000); //maincan
 
-I2C i2c(PB_9,PB_8);
 DigitalOut sig(D13);
 
 CircularBuffer<CANMessage, 32> queue;
@@ -34,7 +34,7 @@ struct C610Data M_tate;
 char servo_mode = 0xff;
 char kubi_mode[2] = {0x80,0x80}; //yoko, tate
 
-int kubi_send_data[2];
+uint16_t kubi_send_data[2];
 
 
 void canListen(){
@@ -135,24 +135,30 @@ int main()
             servo_R.pulsewidth_us(2500);
             servo_L.pulsewidth_us(500); //period
         }
-        for(int i = 0;i<2;i++){
-            if(kubi_mode[i] == 0xff){
-                kubi_send_data[i] = 500;
-            }else if(kubi_mode[i] == 0x00){
-                kubi_send_data[i] = -500;
-            }else if(kubi_mode[i] == 0x80){
-                kubi_send_data[i] = 0;
-            }
+        if(kubi_mode[0] == 0xff){
+            kubi_send_data[0] = 5000;
+        }else if(kubi_mode[0] == 0x00){
+            kubi_send_data[0] = -1000;
+        }else if(kubi_mode[0] == 0x80){
+            kubi_send_data[0] = 0;
         }
-        sendData(kubi_send_data[0], kubi_send_data[1]);
-        ThisThread::sleep_for(1ms);
+        if(kubi_mode[1] == 0xff){
+            kubi_send_data[1] = 2000;
+        }else if(kubi_mode[1] == 0x00){
+            kubi_send_data[1] = -2000;
+        }else if(kubi_mode[1] == 0x80){
+            kubi_send_data[1] = 0;
+        }
+        sendData(kubi_send_data[1], kubi_send_data[0]);
         if(counter > 100){
-        printf("%x,  ",servo_mode);
-        printf("%d,  ",kubi_send_data[0]);
-        printf("%d\n",kubi_send_data[1]);
-        counter = 0;
+            printf("%x,  ",servo_mode);
+            printf("%d,  ",kubi_send_data[0]);
+            printf("%d\n",kubi_send_data[1]);
+            counter = 0;
         }else{
             counter++;
         }
+        ThisThread::sleep_for(1ms);
+        
     }
 }
